@@ -1,0 +1,4 @@
+emb low
+emb med
+emb high
+no pheno
