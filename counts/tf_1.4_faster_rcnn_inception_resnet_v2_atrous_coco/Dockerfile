@@ -14,7 +14,6 @@ ADD research.tar.gz /scripts
 ADD frozen_inference_graph.pb /model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/
 ADD worm_detection_labels.pbtxt /model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/
 ADD get_counts.py /scripts/
-ADD RNAiI.3A1E_M_H12-autolevel.bmp /images
 ADD RNAiI.3A1E_M_H12-autolevel.png /images
 
 ENV PYTHONPATH "/scripts/research:/scripts/research/slim"

@@ -54,10 +54,20 @@ PATH_TO_LABELS = FLAGS.labels
 # Number of classes to test for - this is stupid should just be the number we have in the classes config
 NUM_CLASSES = 5
 
-# BMP_TEST_IMAGE_PATHS = glob.glob(os.path.join(FLAGS.image_path, '*.bmp'))
+BMP_TEST_IMAGE_PATHS = glob.glob(os.path.join(FLAGS.image_path, '*autolevel.bmp'))
+PNG_TEST_IMAGE_PATHS = glob.glob(os.path.join(FLAGS.image_path, '*autolevel.png'))
 #Using PNG shaves about a minute off the time
-TEST_IMAGE_PATHS = glob.glob(os.path.join(FLAGS.image_path, '*.png'))
+# TEST_IMAGE_PATHS = glob.glob(os.path.join(FLAGS.image_path, '*autolevel.png'))
 # TEST_IMAGE_PATHS = BMP_TEST_IMAGE_PATHS + PNG_TEST_IMAGE_PATHS
+TEST_IMAGE_PATHS = []
+
+for bmp in BMP_TEST_IMAGE_PATHS:
+    png = bmp.replace('bmp', 'png')
+    if png in PNG_TEST_IMAGE_PATHS:
+        TEST_IMAGE_PATHS.append(png)
+    else:
+        TEST_IMAGE_PATHS.append(bmp)
+
 ### End Command Line Args
 ##########################################################################
 
@@ -263,33 +273,40 @@ detection_graph = read_detection_graph()
 print('Reading label map')
 (label_map, categories, category_index) = get_labelmap()
 
-with detection_graph.as_default():
-    with tf.Session(graph=detection_graph) as sess:
-        # Definite input and output Tensors for detection_graph
-        image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
-        # Each box represents a part of the image where a particular object was detected.
-        detection_boxes = detection_graph.get_tensor_by_name(
-            'detection_boxes:0')
-        # Each score represent how level of confidence for each of the objects.
-        # Score is shown on the result image, together with the class label.
-        detection_scores = detection_graph.get_tensor_by_name(
-            'detection_scores:0')
-        detection_classes = detection_graph.get_tensor_by_name(
-            'detection_classes:0')
-        num_detections = detection_graph.get_tensor_by_name('num_detections:0')
+session_conf = tf.ConfigProto(
+    intra_op_parallelism_threads=4,
+    inter_op_parallelism_threads=4)
 
-        os.makedirs(FLAGS.label_path, exist_ok=True)
+if not os.path.exists(FLAGS.counts):
+    with detection_graph.as_default():
+        with tf.Session(graph=detection_graph, config=session_conf) as sess:
+            # Definite input and output Tensors for detection_graph
+            image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
+            # Each box represents a part of the image where a particular object was detected.
+            detection_boxes = detection_graph.get_tensor_by_name(
+                'detection_boxes:0')
+            # Each score represent how level of confidence for each of the objects.
+            # Score is shown on the result image, together with the class label.
+            detection_scores = detection_graph.get_tensor_by_name(
+                'detection_scores:0')
+            detection_classes = detection_graph.get_tensor_by_name(
+                'detection_classes:0')
+            num_detections = detection_graph.get_tensor_by_name('num_detections:0')
 
-        results = []
-        for image_path in TEST_IMAGE_PATHS:
-            print('Starting {} '.format(image_path), file=sys.stderr)
-            tic = time.clock()
-            counts = process_images(image_path, image_tensor, detection_boxes,
-                           detection_scores, detection_classes, num_detections)
-            results.append(counts)
-            toc = time.clock()
-            print('Finishing {} '.format(image_path), file=sys.stderr)
-            print('Time {}'.format(toc-tic), file=sys.stderr)
+            os.makedirs(FLAGS.label_path, exist_ok=True)
 
-        df = pd.DataFrame.from_dict(results)
-        df.to_csv(FLAGS.counts, index=False, columns=['image_path', 'worm', 'larva', 'egg', 'egg_clump'])
+            results = []
+            for image_path in TEST_IMAGE_PATHS:
+                print('Starting {} '.format(image_path), file=sys.stderr)
+                tic = time.clock()
+                counts = process_images(image_path, image_tensor, detection_boxes,
+                               detection_scores, detection_classes, num_detections)
+                results.append(counts)
+                toc = time.clock()
+                print('Finishing {} '.format(image_path), file=sys.stderr)
+                print('Time {}'.format(toc-tic), file=sys.stderr)
+
+            df = pd.DataFrame.from_dict(results)
+            df.to_csv(FLAGS.counts, index=False)
+else:
+    print('Csv exists {}'.format(FLAGS.counts))
