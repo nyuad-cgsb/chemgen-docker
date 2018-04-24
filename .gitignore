@@ -2,3 +2,7 @@ set_envs.sh
 .idea
 counts/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/frozen_inference_graph.pb
 counts/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/research.tar.gz
+counts/devstar/devstar-master.zip
+counts/devstar/example/*png
+counts/devstar/example/*bmp
+counts/devstar/devstar-master

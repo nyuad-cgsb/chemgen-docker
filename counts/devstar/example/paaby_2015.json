@@ -1,0 +1,142 @@
+{
+    "queue": {
+        "capacity": 16
+    }, 
+    "scanner": {
+        "base configuration": {
+            "classifier": [
+                {
+                    "implementation": "libsvm", 
+                    "model path": "/volume/albireo/waverly/paaby_2015/model/le_model.txt", 
+                    "name": "egg larva svm", 
+                    "scale": [
+                        0.002188, 
+                        0.000552, 
+                        0.007194, 
+                        7.6e-05, 
+                        4.8e-05, 
+                        0.001604, 
+                        0.001918, 
+                        0.00201, 
+                        0.01087, 
+                        0.001957, 
+                        0.000547, 
+                        0.000946, 
+                        0.001055
+                    ], 
+                    "shift": [
+                        1.0, 
+                        4.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0
+                    ]
+                }, 
+                {
+                    "implementation": "libsvm", 
+                    "model path": "/volume/albireo/waverly/paaby_2015/model/we_model.txt", 
+                    "name": "worm egg svm", 
+                    "scale": [
+                        0.001953, 
+                        0.000599, 
+                        0.00641, 
+                        6.2e-05, 
+                        4e-05, 
+                        0.001785, 
+                        0.002221, 
+                        0.002425, 
+                        0.006289, 
+                        0.002066, 
+                        0.000778, 
+                        0.001566, 
+                        0.001806
+                    ], 
+                    "shift": [
+                        2.0, 
+                        8.0, 
+                        0.0, 
+                        0.0, 
+                        3.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        2.828427, 
+                        0.0, 
+                        0.0
+                    ]
+                }, 
+                {
+                    "implementation": "libsvm", 
+                    "model path": "/volume/albireo/waverly/paaby_2015/model/wl_model.txt", 
+                    "name": "larva worm svm", 
+                    "scale": [
+                        0.001949, 
+                        0.000552, 
+                        0.00641, 
+                        6.2e-05, 
+                        4e-05, 
+                        0.001604, 
+                        0.001918, 
+                        0.00201, 
+                        0.006289, 
+                        0.001957, 
+                        0.000547, 
+                        0.000946, 
+                        0.001055
+                    ], 
+                    "shift": [
+                        1.0, 
+                        4.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        0.0
+                    ]
+                }
+            ], 
+            "default": {
+                "doi": {
+                    "background distance threshold": 6, 
+                    "background smooth weight": 2
+                }, 
+                "egg factor": 70, 
+                "roi": {
+                    "center end": {
+                        "x": 970,
+                        "y": 720
+                    }, 
+                    "center start": {
+                        "x": 600, 
+                        "y": 540
+                    }, 
+                    "radius max": 645, 
+                    "radius min": 600
+                }
+            }, 
+            "implementation": "paaby 2015"
+        }, 
+        "decoder": ".*/(?P<plate_id>(?P<date>[0-9]{8})/(?P<fol_strain>[abc])-(?P<fol_lib>[1-4])-(?P<fol_bac_rep>car|gre|roy)-(?P<fol_plate_rep>[1-8]))/Tile0000(?P<well_id>[0-9]{2})\\.bmp$", 
+        "recursive": true, 
+        "scan path": [
+            "/volume/albireo/waverly/paaby_2015/image_data"
+        ], 
+        "work directory": "/volume/albireo/waverly/paaby_2015/devstar_analysis"
+    }
+}
