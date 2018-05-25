@@ -18,5 +18,5 @@ RUN curl https://raw.githubusercontent.com/jerowe/chemgen-docker/master/classify
 ENV LABEL_FILE /model/emb_leth_ad_ny_1_hub_inceptionv3/output_labels.txt
 ENV GRAPH_FILE /model/emb_leth_ad_ny_1_hub_inceptionv3/output_graph.pb
 
-#EXPOSE 5000
+EXPOSE 5000
 CMD ["gunicorn", "--workers=2", "--bind=0.0.0.0:5000", "flask_label_images:app"]

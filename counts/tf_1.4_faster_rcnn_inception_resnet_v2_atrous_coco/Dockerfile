@@ -3,25 +3,35 @@ FROM continuumio/anaconda3
 RUN apt-get update
 RUN apt-get install -y curl
 RUN conda install -y flask numpy pandas opencv scipy pip setuptools
-RUN pip install  request jsonify tensorflow==1.4  gunicorn
-RUN pip install pandas opencv-python matplotlib
+RUN pip install pandas opencv-python matplotlib celery
+RUN pip install request jsonify tensorflow==1.4 gunicorn
 
-RUN mkdir -p /model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco
-RUN mkdir -p /images
-RUN mkdir -p /scripts
+RUN useradd -ms /bin/bash webuser
+USER webuser
+WORKDIR /home/webuser
 
-ADD research.tar.gz /scripts
-ADD frozen_inference_graph.pb /model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/
-ADD worm_detection_labels.pbtxt /model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/
-ADD get_counts.py /scripts/
-ADD RNAiI.3A1E_M_H12-autolevel.png /images
+RUN mkdir -p /home/webuser/model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco
+RUN mkdir -p /home/webuser/images
+RUN mkdir -p /home/webuser/scripts
 
-ENV PYTHONPATH "/scripts/research:/scripts/research/slim"
+ADD research.tar.gz /home/webuser/scripts
+ADD frozen_inference_graph.pb /home/webuser/model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/
+ADD worm_detection_labels.pbtxt /home/webuser/model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/
+ADD get_counts.py /home/webuser/scripts/
+ADD flask_app/flask_get_counts.py /home/webuser/scripts
+ADD RNAiI.3A1E_M_H12-autolevel.png /home/webuser/images
 
-RUN python /scripts/get_counts.py \
---model_path /model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/frozen_inference_graph.pb \
---label_path /images/annotate \
---labels /model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/worm_detection_labels.pbtxt \
---counts /images/counts.csv \
---image_path /images
+ENV PYTHONPATH "/home/webuser/scripts/research:/home/webuser/scripts/research/slim"
+
+ENV LABEL_FILE /home/webuser/model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/worm_detection_labels.pbtxt
+ENV MODEL_FILE /home/webuser/model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/frozen_inference_graph.pb
+
+WORKDIR /home/webuser/scripts
+EXPOSE 5000
+
+USER root
+
+ADD start_app.sh /home/webuser/scripts/start_app.sh
+
+CMD ["/bin/bash", "-c", "./start_app.sh"]
 

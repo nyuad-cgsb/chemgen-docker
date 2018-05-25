@@ -56,9 +56,6 @@ NUM_CLASSES = 5
 
 BMP_TEST_IMAGE_PATHS = glob.glob(os.path.join(FLAGS.image_path, '*autolevel.bmp'))
 PNG_TEST_IMAGE_PATHS = glob.glob(os.path.join(FLAGS.image_path, '*autolevel.png'))
-#Using PNG shaves about a minute off the time
-# TEST_IMAGE_PATHS = glob.glob(os.path.join(FLAGS.image_path, '*autolevel.png'))
-# TEST_IMAGE_PATHS = BMP_TEST_IMAGE_PATHS + PNG_TEST_IMAGE_PATHS
 TEST_IMAGE_PATHS = []
 
 for bmp in BMP_TEST_IMAGE_PATHS:
@@ -226,7 +223,6 @@ def label_image(image_path, image_np, boxes, classes, scores, category_index):
         np.squeeze(boxes),
         np.squeeze(classes).astype(np.int32),
         np.squeeze(scores),
-        category_index,
         use_normalized_coordinates=True,
         max_boxes_to_draw=None,
         min_score_thresh=.4,

@@ -1,0 +1,84 @@
+version: '3'
+# Run with
+# docker stack deploy --compose-file=docker-compose-swarm.yml prod
+# Investigate the service with
+# docker service ls
+# docker service logs prod_rabbit
+# docker service logs prod_tf_counts
+
+services:
+    # RabbitMQ, used by the flask app to queue up jobs whee
+    rabbit:
+        hostname: rabbit
+        image: rabbitmq:latest
+        ports:
+            - "5672:5672"
+        environment:
+            - SERVICE_PORTS=5672
+            - TCP_PORTS=5672
+            - MODE=tcp
+            - RABBITMQ_DEFAULT_USER=admin
+            - RABBITMQ_DEFAULT_PASS=mypass
+        deploy:
+          replicas: 1
+          update_config:
+              parallelism: 1
+              delay: 10s
+          restart_policy:
+              condition: on-failure
+              max_attempts: 3
+              window: 120s
+        networks:
+            - web
+
+    # App that actually runs the tf_counts
+    tf_counts:
+        image: tf_counts
+        volumes:
+            - "/mnt/image:/mnt/image"
+        links:
+            - rabbit
+        depends_on:
+            - rabbit
+        ports:
+            - "5000:5000"
+        environment:
+            - SERVICE_PORTS=5000
+        deploy:
+          replicas: 4
+          update_config:
+              parallelism: 2
+              delay: 10s
+          restart_policy:
+              condition: on-failure
+              max_attempts: 3
+              window: 120s
+        networks:
+            - web
+
+    # Magical container that load balances all the things
+    proxy:
+      image: dockercloud/haproxy
+      links:
+          - rabbit
+          - tf_counts
+      depends_on:
+          - tf_counts
+      environment:
+          - MODE=tcp
+          - BALANCE=leastconn
+          - RABBITMQ_DEFAULT_USER=admin
+          - RABBITMQ_DEFAULT_PASS=mypass
+      volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+      ports:
+          - 80:80
+      networks:
+          - web
+      deploy:
+        placement:
+          constraints: [node.role == manager]
+
+networks:
+    web:
+        driver: overlay
