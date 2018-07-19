@@ -5,6 +5,8 @@ version: '3'
 # docker service ls
 # docker service logs prod_rabbit
 # docker service logs prod_tf_counts
+# Scale the service with
+# docker service scale prod_tf_counts=N
 
 services:
     # RabbitMQ, used by the flask app to queue up jobs whee
@@ -28,16 +30,16 @@ services:
               condition: on-failure
               max_attempts: 3
               window: 120s
+          placement:
+            constraints: [node.role == worker]
         networks:
             - web
 
     # App that actually runs the tf_counts
     tf_counts:
-        image: tf_counts
+        image: quay.io/nyuad_cgsb/tf_14_faster_rcnn_inception_resnet_v2_atrous_coco_tf_counts
         volumes:
             - "/mnt/image:/mnt/image"
-        links:
-            - rabbit
         depends_on:
             - rabbit
         ports:
@@ -45,7 +47,7 @@ services:
         environment:
             - SERVICE_PORTS=5000
         deploy:
-          replicas: 4
+          replicas: 1
           update_config:
               parallelism: 2
               delay: 10s
@@ -53,16 +55,43 @@ services:
               condition: on-failure
               max_attempts: 3
               window: 120s
+          placement:
+            constraints: [node.role == worker]
+        networks:
+            - web
+
+    tf_counts_manager:
+        image: quay.io/nyuad_cgsb/tf_14_faster_rcnn_inception_resnet_v2_atrous_coco_tf_counts
+        volumes:
+            - "/mnt/image:/mnt/image"
+        depends_on:
+            - rabbit
+        ports:
+            - "5000:5000"
+        environment:
+            - SERVICE_PORTS=5000
+        deploy:
+          replicas: 1
+          update_config:
+              parallelism: 2
+              delay: 10s
+          restart_policy:
+              condition: on-failure
+              max_attempts: 3
+              window: 120s
+          placement:
+            constraints: [node.role == manager]
         networks:
             - web
 
     # Magical container that load balances all the things
     proxy:
       image: dockercloud/haproxy
-      links:
-          - rabbit
-          - tf_counts
+#      links:
+#          - rabbit
+#          - tf_counts
       depends_on:
+          - rabbit
           - tf_counts
       environment:
           - MODE=tcp
@@ -72,7 +101,7 @@ services:
       volumes:
           - /var/run/docker.sock:/var/run/docker.sock
       ports:
-          - 80:80
+          - 3005:80
       networks:
           - web
       deploy:

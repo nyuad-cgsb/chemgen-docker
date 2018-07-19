@@ -25,10 +25,12 @@ ENV PYTHONPATH "/home/webuser/scripts/research:/home/webuser/scripts/research/sl
 
 ENV LABEL_FILE /home/webuser/model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/worm_detection_labels.pbtxt
 ENV MODEL_FILE /home/webuser/model/tf_1.4_faster_rcnn_inception_resnet_v2_atrous_coco/frozen_inference_graph.pb
+ENV IMAGE_PATH /home/user/images/RNAiI.3A1E_M_H12-autolevel.png
 
 WORKDIR /home/webuser/scripts
 EXPOSE 5000
 
+##TODO Change this user - celery complains
 USER root
 
 ADD start_app.sh /home/webuser/scripts/start_app.sh

@@ -56,7 +56,7 @@ def make_celery(app):
 
 celery = make_celery(app)
 
-# celery.purge()
+# celery.control.purge()
 
 @celery.task()
 def add_together(a, b):
@@ -72,6 +72,8 @@ class TfArgs:
         Store the initial request in 'args'
         :param args:
         """
+        print('Received args')
+        print(args)
         self._args = args
 
     @property
@@ -379,9 +381,11 @@ def run_tf_counts(request_args):
     # if args.counts is not False:
     #     open(args.counts, 'a').close()
 
-    size = os.stat(args.counts).st_size == 0
+    size = False
+    if os.path.exists(args.counts):
+        size = os.stat(args.counts).st_size != 0
 
-    if args.counts is not False and size:
+    if args.counts is not False and size is False:
 
         print('No counts file found running job {}'.format(args.image_path), file=sys.stderr)
         images = get_images(args)

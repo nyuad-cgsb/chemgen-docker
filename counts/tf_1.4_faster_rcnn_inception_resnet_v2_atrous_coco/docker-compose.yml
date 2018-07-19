@@ -22,6 +22,10 @@ services:
             - TCP_PORTS=5672
 
     # App that actually runs the tf_counts
+    # In order to build the image run
+    # docker-compose build
+    # It needs to be retagged to upload to quay
+    # docker tag tf_14_faster_rcnn_inception_resnet_v2_atrous_coco_tf_counts quay.io/nyuad_cgsb/tf_14_faster_rcnn_inception_resnet_v2_atrous_coco_tf_counts:latest
     tf_counts:
         build:
             context: .
