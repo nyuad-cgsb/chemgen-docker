@@ -191,22 +191,29 @@ def get_images(args):
     :param args:
     :return: [image_paths]
     """
-    BMP_TEST_IMAGE_PATHS = glob.glob(os.path.join(args.image_path, '*autolevel.bmp'))
-    PNG_TEST_IMAGE_PATHS = glob.glob(os.path.join(args.image_path, '*autolevel.png'))
-    TEST_IMAGE_PATHS = []
+    if os.path.isdir(args.image_path):
+        BMP_TEST_IMAGE_PATHS = glob.glob(os.path.join(args.image_path, '*autolevel.bmp'))
+        PNG_TEST_IMAGE_PATHS = glob.glob(os.path.join(args.image_path, '*autolevel.png'))
+        TEST_IMAGE_PATHS = []
 
-    for bmp in BMP_TEST_IMAGE_PATHS:
-        png = bmp.replace('bmp', 'png')
-        if png in PNG_TEST_IMAGE_PATHS:
-            TEST_IMAGE_PATHS.append(png)
-        else:
-            TEST_IMAGE_PATHS.append(bmp)
+        for bmp in BMP_TEST_IMAGE_PATHS:
+            png = bmp.replace('bmp', 'png')
+            if png in PNG_TEST_IMAGE_PATHS:
+                TEST_IMAGE_PATHS.append(png)
+            else:
+                TEST_IMAGE_PATHS.append(bmp)
 
-    for png in PNG_TEST_IMAGE_PATHS:
-        if png not in TEST_IMAGE_PATHS:
-            TEST_IMAGE_PATHS.append(png)
+        for png in PNG_TEST_IMAGE_PATHS:
+            if png not in TEST_IMAGE_PATHS:
+                TEST_IMAGE_PATHS.append(png)
 
-    return TEST_IMAGE_PATHS
+        return TEST_IMAGE_PATHS
+    elif os.path.isfile(args.image_path):
+        return [args.image_path]
+    else:
+        print('No images were found!!!', file=sys.stderr)
+        return []
+
 
 
 def load_image_into_numpy_array(image):
@@ -382,10 +389,15 @@ def run_tf_counts(request_args):
     #     open(args.counts, 'a').close()
 
     size = False
+    results = []
     if os.path.exists(args.counts):
         size = os.stat(args.counts).st_size != 0
 
-    if args.counts is not False and size is False:
+    if size is not False:
+        df = pd.read_csv(args.counts)
+        results = df.to_dict('records')
+
+    if args.counts is not False:
 
         print('No counts file found running job {}'.format(args.image_path), file=sys.stderr)
         images = get_images(args)
@@ -404,7 +416,6 @@ def run_tf_counts(request_args):
             intra_op_parallelism_threads=4,
             inter_op_parallelism_threads=4)
 
-        results = []
         with detection_graph.as_default():
             with tf.Session(graph=detection_graph, config=session_conf) as sess:
                 # Definite input and output Tensors for detection_graph
@@ -421,12 +432,16 @@ def run_tf_counts(request_args):
                 num_detections = detection_graph.get_tensor_by_name('num_detections:0')
 
                 for image_path in images:
-                    print('Starting {} '.format(image_path), file=sys.stderr)
-                    sys.stdout.flush()
-                    counts = process_images(args, sess, image_path, image_tensor, detection_boxes,
-                                            detection_scores, detection_classes, num_detections,
-                                            category_index)
-                    results.append(counts)
+                    res = list(filter(lambda result: result['image_path'] == image_path, results))
+                    if len(res) == 0:
+                        print('Starting {} '.format(image_path), file=sys.stderr)
+                        sys.stdout.flush()
+                        counts = process_images(args, sess, image_path, image_tensor, detection_boxes,
+                                                detection_scores, detection_classes, num_detections,
+                                                category_index)
+                        results.append(counts)
+                    else:
+                        print('Image {} already exists in results'.format(image_path), file=sys.stderr)
                     sys.stdout.flush()
 
         if args.counts is not False:
@@ -445,6 +460,25 @@ def label_image():
     print(content, file=sys.stderr)
     run_tf_counts.delay(content)
     return jsonify({'request': content, 'sent': 1})
+
+
+@app.route('/tf_counts/1.0/api/get_counts/', methods=['GET', 'POST'])
+def get_counts():
+    content = request.json
+    print(content, file=sys.stderr)
+    if content['counts']:
+        df = pd.read_csv(content['counts'])
+        counts = df.to_dict('records')
+        return jsonify({'counts': counts})
+    elif content['image_path'] and os.path.isdir(content['image_path']):
+        d = os.path.dirname(content['image_path'])
+        b = os.path.basename(content['image_path'])
+        counts_file = '{}/{}-tf_counts.csv'.format(d, b)
+        df = pd.read_csv(counts_file)
+        counts = df.to_dict('records')
+        return jsonify({'counts': counts})
+    else:
+        return jsonify({})
 
 
 @app.route('/tf_counts/1.0/api/health/', methods=['GET', 'POST'])

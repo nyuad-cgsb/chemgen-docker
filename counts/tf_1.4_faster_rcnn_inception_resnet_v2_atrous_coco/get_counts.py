@@ -54,16 +54,20 @@ PATH_TO_LABELS = FLAGS.labels
 # Number of classes to test for - this is stupid should just be the number we have in the classes config
 NUM_CLASSES = 5
 
-BMP_TEST_IMAGE_PATHS = glob.glob(os.path.join(FLAGS.image_path, '*autolevel.bmp'))
-PNG_TEST_IMAGE_PATHS = glob.glob(os.path.join(FLAGS.image_path, '*autolevel.png'))
 TEST_IMAGE_PATHS = []
 
-for bmp in BMP_TEST_IMAGE_PATHS:
-    png = bmp.replace('bmp', 'png')
-    if png in PNG_TEST_IMAGE_PATHS:
-        TEST_IMAGE_PATHS.append(png)
-    else:
-        TEST_IMAGE_PATHS.append(bmp)
+if not os.path.exists(FLAGS.image_path):
+    BMP_TEST_IMAGE_PATHS = glob.glob(os.path.join(FLAGS.image_path, '*autolevel.bmp'))
+    PNG_TEST_IMAGE_PATHS = glob.glob(os.path.join(FLAGS.image_path, '*autolevel.png'))
+
+    for bmp in BMP_TEST_IMAGE_PATHS:
+        png = bmp.replace('bmp', 'png')
+        if png in PNG_TEST_IMAGE_PATHS:
+            TEST_IMAGE_PATHS.append(png)
+        else:
+            TEST_IMAGE_PATHS.append(bmp)
+else:
+    TEST_IMAGE_PATHS = [os.path.abspath(FLAGS.image_path)]
 
 ### End Command Line Args
 ##########################################################################
@@ -237,7 +241,7 @@ def label_image(image_path, image_np, boxes, classes, scores, category_index):
     # plt.imsave(full_name, image_np)
 
 
-def process_images(image_path, image_tensor, detection_boxes, detection_score, detection_classes, num_detection):
+def process_images(image_path, image_tensor, detection_boxes, detection_score, detection_classes, num_detection, category_index):
     image = Image.open(image_path)
 
     try:
@@ -255,7 +259,7 @@ def process_images(image_path, image_tensor, detection_boxes, detection_score, d
         [detection_boxes, detection_scores, detection_classes, num_detections],
         feed_dict={image_tensor: image_np_expanded})
 
-    label_image(image_path, image_np, boxes, classes, scores, category_index)
+    # label_image(image_path, image_np, boxes, classes, scores, category_index)
     counts = get_normalized_coordinates(
         image, image_path, image_np, boxes, classes, scores, category_index)
     return counts
@@ -273,36 +277,37 @@ session_conf = tf.ConfigProto(
     intra_op_parallelism_threads=4,
     inter_op_parallelism_threads=4)
 
-if not os.path.exists(FLAGS.counts):
-    with detection_graph.as_default():
-        with tf.Session(graph=detection_graph, config=session_conf) as sess:
-            # Definite input and output Tensors for detection_graph
-            image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
-            # Each box represents a part of the image where a particular object was detected.
-            detection_boxes = detection_graph.get_tensor_by_name(
-                'detection_boxes:0')
-            # Each score represent how level of confidence for each of the objects.
-            # Score is shown on the result image, together with the class label.
-            detection_scores = detection_graph.get_tensor_by_name(
-                'detection_scores:0')
-            detection_classes = detection_graph.get_tensor_by_name(
-                'detection_classes:0')
-            num_detections = detection_graph.get_tensor_by_name('num_detections:0')
+# if not os.path.exists(FLAGS.counts):
+with detection_graph.as_default():
+    with tf.Session(graph=detection_graph, config=session_conf) as sess:
+        # Definite input and output Tensors for detection_graph
+        image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
+        # Each box represents a part of the image where a particular object was detected.
+        detection_boxes = detection_graph.get_tensor_by_name(
+            'detection_boxes:0')
+        # Each score represent how level of confidence for each of the objects.
+        # Score is shown on the result image, together with the class label.
+        detection_scores = detection_graph.get_tensor_by_name(
+            'detection_scores:0')
+        detection_classes = detection_graph.get_tensor_by_name(
+            'detection_classes:0')
+        num_detections = detection_graph.get_tensor_by_name('num_detections:0')
 
-            os.makedirs(FLAGS.label_path, exist_ok=True)
+        os.makedirs(FLAGS.label_path, exist_ok=True)
 
-            results = []
-            for image_path in TEST_IMAGE_PATHS:
-                print('Starting {} '.format(image_path), file=sys.stderr)
-                tic = time.clock()
-                counts = process_images(image_path, image_tensor, detection_boxes,
-                               detection_scores, detection_classes, num_detections)
-                results.append(counts)
-                toc = time.clock()
-                print('Finishing {} '.format(image_path), file=sys.stderr)
-                print('Time {}'.format(toc-tic), file=sys.stderr)
+        results = []
+        for image_path in TEST_IMAGE_PATHS:
+            print('Starting {} '.format(image_path), file=sys.stderr)
+            tic = time.clock()
+            counts = process_images(image_path, image_tensor, detection_boxes,
+                           detection_scores, detection_classes, num_detections, category_index)
+            results.append(counts)
+            toc = time.clock()
+            print('Finishing {} '.format(image_path), file=sys.stderr)
+            print('Time {}'.format(toc-tic), file=sys.stderr)
 
-            df = pd.DataFrame.from_dict(results)
-            df.to_csv(FLAGS.counts, index=False)
-else:
-    print('Csv exists {}'.format(FLAGS.counts))
+        df = pd.DataFrame.from_dict(results)
+        df.to_csv(FLAGS.counts, index=False)
+        print(results)
+# else:
+#     print('Csv exists {}'.format(FLAGS.counts))
